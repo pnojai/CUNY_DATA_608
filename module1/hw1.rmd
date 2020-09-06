@@ -1,8 +1,15 @@
 ---
-title: "R Notebook"
+title: 'DATA608: Homework 1'
+author: "Jai Jeffryes"
+date: "9/6/2020"
 output:
-  html_document: default
-  html_notebook: default
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '5'
+  pdf_document:
+    toc: yes
+    toc_depth: 5
 ---
 
 **Principles of Data Visualization and Introduction to ggplot2**
@@ -175,7 +182,7 @@ inc_state3 %>%
   xlim(sort(levels(inc_state3$Industry), decreasing = T)) +
     theme_bw() +
     labs(title = "5,000 Fastest Growing Companies in the U.S.",
-         subtitle = "New York: Number of employees by industry\n(Highest industry outliers omitted)",
+         subtitle = "New York: Number of employees by industry\n(Outliers omitted)",
          caption = "Source: Inc. Magazine")
 ```
 
@@ -184,7 +191,7 @@ inc_state3 %>%
 Now imagine you work for an investor and want to see which industries generate the most revenue per employee. Create a chart that makes this information clear. Once again, the distribution per industry should be shown.
 
 ### Lessons learned
-- [Ignoreo outliers in ggplot2 boxplot in R](https://statisticsglobe.com/ignore-outliers-in-ggplot2-boxplot-in-r).
+- [Ignore outliers in ggplot2 boxplot in R](https://statisticsglobe.com/ignore-outliers-in-ggplot2-boxplot-in-r).
 
 ### Answer
 ```{r, fig.height = 10}
@@ -200,7 +207,7 @@ ggplot(inc_productivity) +
   coord_flip(ylim = c(0, 1800000)) +
   theme_bw() +
   labs(title = "5,000 Fastest Growing Companies in the U.S.",
-       subtitle = "Revenue per employee by Industry",
+       subtitle = "Revenue per employee by Industry\n(Outliers omitted)",
        caption = "Source: Inc. Magazine",
        x = "Industry",
        y = "Revenue per employee ($US)") 
