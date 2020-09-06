@@ -10,6 +10,11 @@ output:
 I have provided you with data about the 5,000 fastest growing companies in the US, as compiled by Inc. magazine. lets read this in:
 
 ```{r}
+library(dplyr)
+library(ggplot2)
+```
+
+```{r}
 
 inc <- read.csv("https://raw.githubusercontent.com/charleyferrari/CUNY_DATA_608/master/module1/Data/inc5000_data.csv", header= TRUE)
 
@@ -31,39 +36,329 @@ summary(inc)
 Think a bit on what these summaries mean. Use the space below to add some more relevant non-visual exploratory information you think helps you understand this data:
 
 ```{r}
-
 # Insert your code here, create more chunks as necessary
+# Number of industries
+length(unique(inc$Industry))
 
+# Frequency table of industries
+table(inc$Industry)
+
+```
+```{r}
+# Top revenue by industry
+inc %>%
+    group_by(Industry) %>%
+    summarise(Tot_Revenue = sum(Revenue)) %>%
+    arrange(desc(Tot_Revenue))
+```
+```{r}
+# Top growth rate by industry
+inc %>%
+    group_by(Industry) %>%
+    summarise(mean_Growth_Rate = mean(Growth_Rate)) %>%
+    arrange(desc(mean_Growth_Rate))
+```
+```{r}
+# Top growth rate by industry
+inc %>%
+    group_by(Industry) %>%
+    summarise(mean_Growth_Rate = mean(Growth_Rate)) %>%
+    arrange(desc(mean_Growth_Rate))
+```
+
+```{r}
+# Top revenue by city
+inc %>%
+    group_by(City, State) %>%
+    summarise(Tot_Revenue = sum(Revenue)) %>%
+    arrange(desc(Tot_Revenue))
+```
+
+```{r}
+# Top growth rate by city
+inc %>%
+    group_by(City, State) %>%
+    summarise(mean_Growth_Rate = mean(Growth_Rate)) %>%
+    arrange(desc(mean_Growth_Rate))
+```
+```{r}
+# Top productivity
+inc_revenue_per_employee <- inc %>%
+    select(Name, Revenue, Employees) %>%
+    mutate(Revenue_per_Employee = Revenue / Employees) %>%
+    arrange(desc(Revenue_per_Employee))
+
+inc_revenue_per_employee[1:10, c(1,4)]
+
+# Note to self: You don't have to subset the columns,
+# just move the select below the mutation and soring.
+inc_revenue_per_employee <- inc %>%
+    mutate(Revenue_per_Employee = Revenue / Employees) %>%
+    arrange(desc(Revenue_per_Employee)) %>%
+    select(Name, Revenue_per_Employee)
 ```
 
 ## Question 1
 
 Create a graph that shows the distribution of companies in the dataset by State (ie how many are in each state). There are a lot of States, so consider which axis you should use. This visualization is ultimately going to be consumed on a 'portrait' oriented screen (ie taller than wide), which should further guide your layout choices.
 
-```{r}
+### Pet peeve (note to self)
+These  are the things about R that yank my chain. It shouldn't be this hard to change the order of a plot. You can't just tell the aesthetic function to reorder the column State. Instead, you have to dive into arcane discussions on StackOverflow about peculiarities of flipping coordinates. Then you have to stand on your head with commands that are not at all intuitive in order to hack the output you want. But it's in my code now, and `grep` is my friend. When I need this trick again six years from now, I'll remember I said this yanked my chain and I can find it.
+
+**References**
+
+- [ggplot2 - sorting a plot](https://stackoverflow.com/questions/3744178/ggplot2-sorting-a-plot). See MatteoS's answer about `xlim(rev(levels()))`.
+- Also, this page: [Order of legend entries in ggplot2 barplts with coord flip](https://stackoverflow.com/questions/7299440/order-of-legend-entries-in-ggplot2-barplots-with-coord-flip).
+
+### Lessons learned
+- `coord_flip()` orders bottom to top, that's all. It would be great if `coord_flip()` had a parameter for controlling that. Since it doesn't, you have to hack the x axis with `xlim` and then `rev()` (base `R`) or `sort(desc = T)`.
+- Control the dimension of the plot, not in the plot, but in the target presentation; here, `knitr`. The bars are too narrow by default. Don't think "thicken the bars," think "resize the output figure." Do that in the chunk options.
+
+### Answer
+```{r, fig.height = 10}
 
 # Answer Question 1 here
-
+ggplot(inc) +
+    aes(x = State) +
+    geom_bar(stat = "count") +
+    coord_flip() +
+    xlim(sort(levels(inc$State), decreasing = T)) +
+    theme_bw() +
+    labs(title = "5,000 Fastest Growing Companies in the U.S.",
+         subtitle = "Number of Companies by State",
+         x = "State",
+         y = "Count",
+         caption = "Source: Inc. Magazine")
 ```
 
-## Quesiton 2
+## Question 2
 
 Lets dig in on the state with the 3rd most companies in the data set. Imagine you work for the state and are interested in how many people are employed by companies in different industries. Create a plot that shows the average and/or median employment by industry for companies in this state (only use cases with full data, use R's `complete.cases()` function.) In addition to this, your graph should show how variable the ranges are, and you should deal with outliers.
 
-```{r}
+### Pet peeve
+- I dislike mixing query approaches. Base R or `dplyr`, not both. Filtering should happen in one place. If I'm going to use `dplyr`, I don't want `complete_cases()` outside of the query. I wonder how I would do that.
 
+### Lessons learned
+- My SQL head tends to forget I can code `select()` after other grouping and filtering, which allows me to return only the variables I want while not making the code above complain that it is missing dependant columns.
+- Two ways to pick off specific rows.
+  - `filter()` with `row_number()`. Knew that, but had to look it up.
+  - `slice()`. New one on me.
+- Two ways to count within groups.
+  - `group_by()` with `summarise(n = n())`. Knew that.
+  - `count()`. New one. Counts by group according to variables in args. Parameter `sort = t` orders descending.
+- `GROUP BY/HAVING`: [dplyr and SQL](https://beanumber.github.io/mysql-r-webinar/dplyr.html)
+- Outliers. You can omit them from boxplots with a parameter. I found the reference to that when I was working on the third question. I moved all of my earlier solutions to Question 2 down to the bottom in order to keep the code.
+
+### Answer
+The question pertains to central tendancy. Therefore, inclusion of outliers is not germane and are omitted from the boxplots.
+
+```{r, fig.height = 10}
 # Answer Question 2 here
+# Identify the 3rd largest state.
+State_3 <- inc %>% 
+  group_by(State) %>%
+  summarise(n = n()) %>%
+  arrange(desc(n)) %>%
+  filter(row_number() == 3) %>%
+  select(State) # It returns as a tibble, so convert the column.
+State_3 <- State_3$State
 
+# Pick off complete data for 3rd largest state.
+inc_state3 <- inc[complete.cases(inc), ] %>%
+  filter(State == State_3)
+
+# Boxplot each industry, omitting outliers.
+inc_state3 %>%
+  ggplot(aes(x = Industry, y = Employees)) +
+  geom_boxplot(outlier.shape = NA) +
+  coord_flip(ylim = c(0, 1250)) +
+  xlim(sort(levels(inc_state3$Industry), decreasing = T)) +
+    theme_bw() +
+    labs(title = "5,000 Fastest Growing Companies in the U.S.",
+         subtitle = "New York: Number of employees by industry\n(Highest industry outliers omitted)",
+         caption = "Source: Inc. Magazine")
 ```
 
 ## Question 3
 
 Now imagine you work for an investor and want to see which industries generate the most revenue per employee. Create a chart that makes this information clear. Once again, the distribution per industry should be shown.
 
-```{r}
+### Lessons learned
+- [Ignoreo outliers in ggplot2 boxplot in R](https://statisticsglobe.com/ignore-outliers-in-ggplot2-boxplot-in-r).
 
+### Answer
+```{r, fig.height = 10}
 # Answer Question 3 here
+# This was one of the questions from my own EDA at the top.
 
+inc_productivity <- inc[complete.cases(inc), ] %>%
+    mutate(Revenue_per_Employee = Revenue / Employees)
+
+ggplot(inc_productivity) +
+  aes(x = reorder(Industry, Revenue_per_Employee, FUN = median), y = Revenue_per_Employee) +
+  geom_boxplot(outlier.shape = NA) +
+  coord_flip(ylim = c(0, 1800000)) +
+  theme_bw() +
+  labs(title = "5,000 Fastest Growing Companies in the U.S.",
+       subtitle = "Revenue per employee by Industry",
+       caption = "Source: Inc. Magazine",
+       x = "Industry",
+       y = "Revenue per employee ($US)") 
+```
+
+## Afterword
+These are approaches I discarded, but I'm keeping the code around as work papers for my learning.
+
+### Preferred solution
+Extreme outliers squash the interquartile ranges too much to be discernable. In this plot, the company with the highest number of employees within each industry is omitted. We can still interpret the variability from the IQR and whiskers, and we can see the medians.
+
+**Maximum outlier omitted**
+
+```{r, fig.height = 10}
+# Answer Question 2 here
+# Identify the 3rd largest state.
+State_3 <- inc %>% 
+  group_by(State) %>%
+  summarise(n = n()) %>%
+  arrange(desc(n)) %>%
+  filter(row_number() == 3) %>%
+  select(State) # It returns as a tibble, so convert the column.
+State_3 <- State_3$State
+
+# Alternate queries (unused)
+dummy <- inc %>% 
+  group_by(State) %>%
+  summarise(n = n()) %>%
+  arrange(desc(n)) %>%
+  slice(3) %>%
+  select(State)
+
+dummy <- inc %>%
+  count(State, sort = T)
+
+# Pick off complete data for 3rd largest state.
+inc_state3 <- inc[complete.cases(inc), ] %>%
+  filter(State == State_3)
+
+# Identify highest outlier in each industry
+inc_state3_max_emp <- inc_state3 %>%
+  group_by(Industry) %>%
+  filter(Employees == max(Employees))
+
+# Boxplot each industry, omitting its highest outlier.
+inc_state3 %>%
+  filter(!(Name %in% inc_state3_max_emp$Name)) %>%
+  ggplot(aes(x = Industry, y = Employees)) +
+  geom_boxplot() +
+  coord_flip() + 
+  xlim(sort(levels(inc_state3$Industry), decreasing = T)) +
+    theme_bw() +
+    labs(title = "5,000 Fastest Growing Companies in the U.S.",
+         subtitle = "New York: Number of employees by industry\n(Highest industry outliers omitted)",
+         caption = "Source: Inc. Magazine")
+```
+
+When I look at that chart, I would like to examine further the differences between the industries with fewer than 500 employees.
+
+```{r, fig.height = 10}
+# Lowest outlier companies.
+industry_low_outliers <- inc_state3 %>%
+  group_by(Industry) %>%
+  summarize(emp_count = sum(Employees)) %>%
+  filter(emp_count < 500) %>%
+  select(Industry)
+
+# Boxplot each industry whose employees total no more than 500.
+inc_state3 %>%
+  filter(Industry %in% industry_low_outliers$Industry) %>%
+  ggplot(aes(x = Industry, y = Employees)) +
+  geom_boxplot() +
+  coord_flip() + 
+  xlim(sort(levels(inc_state3$Industry), decreasing = T)) +
+    theme_bw() +
+    labs(title = "5,000 Fastest Growing Companies in the U.S.",
+         subtitle = "New York: Number of employees by industry\n(Industries with 500 employees or less)",
+         caption = "Source: Inc. Magazine")
+```
+
+### Alternate approaches
+The question pertains to central tendancy. Therefore, inclusion of outliers is not germane and I would omit any of these other approaches from an actual presentation. However, examination of outliers is possible.
+
+Here is the same approach as above, with outliers included. It squashes the IQRs, but you can see the relation of the outliers to the central tendency.
+
+**Maximum outlier included**
+
+```{r, fig.height = 10}
+# Boxplot each industry, including the highest outlier.
+inc_state3 %>%
+  ggplot(aes(x = Industry, y = Employees)) +
+  geom_boxplot() +
+  coord_flip() + 
+  xlim(sort(levels(inc_state3$Industry), decreasing = T)) +
+    theme_bw() +
+    labs(title = "5,000 Fastest Growing Companies in the U.S.",
+         subtitle = "New York: Number of employees by industry\n(Highest industry outliers included)",
+         caption = "Source: Inc. Magazine")
+```
+
+Another approach is to divide the industries into ranges of outliers. Most companies can be viewed according to the preferred approach, while the remaining can be viewed with vertical boxplots. The advantage is being able to see the maximum outliers in relation to the IQR, if that is desired. However, the disadvantage is being unable to compare directly by visual inspection the distributions of the other companies.
+
+```{r, fig.height = 20}
+# Lowest outlier companies.
+industry_low_outliers <- inc_state3 %>%
+  group_by(Industry) %>%
+  summarize(emp_count = sum(Employees)) %>%
+  filter(emp_count < 2000) %>%
+  select(Industry)
+
+# Plot lowest outliers.
+inc_state3 %>%
+  filter(Industry %in% industry_low_outliers$Industry) %>%
+  ggplot(aes(x = Industry, y = Employees)) +
+  geom_boxplot() +
+  coord_flip() + 
+  xlim(sort(levels(inc_state3$Industry), decreasing = T)) +
+    theme_bw() +
+    labs(title = "5,000 Fastest Growing Companies in the U.S.",
+         subtitle = "New York: Number of employees by industry\n(Industries with low outliers)",
+         caption = "Source: Inc. Magazine")
+
+# Medium outlier companies.
+industry_mid_outliers <- inc_state3 %>%
+  group_by(Industry) %>%
+  summarize(emp_count = sum(Employees)) %>%
+  filter(between(emp_count, 2000, 10000)) %>%
+  select(Industry)
+
+# Plot medium outliers vertically.
+inc_state3 %>%
+  filter(Industry %in% industry_mid_outliers$Industry) %>%
+  ggplot(aes(x = Industry, y = Employees)) +
+  geom_boxplot() +
+    theme_bw() +
+    labs(title = "5,000 Fastest Growing Companies in the U.S.",
+         subtitle = "New York: Number of employees by industry\n(Industries with medium outliers)",
+         caption = "Source: Inc. Magazine")
+```
+
+*Comment*: The plot below is worthless. I wonder if a legal solution would be to truncate the vertical axis, snip out a portion of the range in order to collapse the extreme displacement. You could put in some kind of graphic equivalent of an ellipses to show the rante you're "tearing out" and an annotation about the omission.
+
+```{r, fig.height = 40}
+# Extreme outlier companies.
+industry_hi_outliers <- inc_state3 %>%
+  group_by(Industry) %>%
+  summarize(emp_count = sum(Employees)) %>%
+  filter(emp_count > 10000) %>%
+  select(Industry)
+
+inc_state3 %>%
+  filter(Industry %in% industry_hi_outliers$Industry) %>%
+  ggplot(aes(x = Industry, y = Employees)) +
+  geom_boxplot() +
+    theme_bw() +
+    labs(title = "5,000 Fastest Growing Companies in the U.S.",
+         subtitle = "New York: Number of employees by industry\n(Industries with extreme outliers)",
+         caption = "Source: Inc. Magazine")
 ```
 
 
