@@ -1,0 +1,100 @@
+<html>
+
+<!--    
+    Note to Students:
+        This is a very short introduction to using Javascript in the browser.
+        To see this as a webpage, you have to start a *Local Web Server*. There are many ways to do this: since you all have python installed, we will use python.
+        - Open terminal
+        - 'cd' into the directory where this html file is (js_in_webpage.html)
+        - Type the following into the terminal and hit 'enter':
+            python -m SimpleHTTPServer
+            your server should read something like: Serving HTTP on 0.0.0.0 port 8000 ...
+        - now go to any browser and type in the HTTP address and the filename: something like:
+            http://0.0.0.0:8000/js_in_webpage.html
+            or
+            http://localhost:8000/js_in_webpage.html
+        - Congrats: you now have a local HTTP server running. Now, every time you change this file and save it, when you reload the browser you will see your changes!
+-->
+
+<head><title>DATA608 - Module 5</title></head>
+<body>
+<h1>DATA608 - Module 5</h1>
+<h2>Author: Jai Jeffryes</h2>
+
+<script type="text/javascript">
+// Beginner assignment
+function reverse_str(str){
+    // Validate input.
+    if(!str || str.length < 2 || typeof str!=='string') {
+	return 'Invalid string';
+    };
+
+    // Constants.
+    const rev_array = [];
+    const len = str.length - 1;
+
+    // Iterate from the end.
+    for(let i = len; i >= 0; i--) { 
+        rev_array.push(str[i]); 
+    };
+      
+    // Joining the array elements 
+    return rev_array.join('');
+}
+</script>
+
+<script type="text/javascript">
+function reverse_out(){
+    var t = document.getElementById("target1");
+    t.innerHTML = reverse_str(document.getElementById('str_inp').value);
+}
+</script>
+
+<h3>Reverse a string</h3>
+<form>
+    <input id="str_inp" type="text" size="20">
+    <input type="button" value="Reverse" onClick="reverse_out();">
+</form>
+</p>
+
+<div id="target1"></div>
+
+<script type="text/javascript">
+// Part 2. Table of multiples.
+function generate_table(num){
+    var table_text = "<table>";
+    var rows = 5;
+    var cols = 4;
+    var k = 1;
+
+    // i/j walk the matrix.
+    // k accumulates the element number.
+    for(let i = 1; i <= rows; i++) {
+	table_text += "<tr>";
+	for(let j = 0; j <= cols-1; j++) {
+	    table_text += "<td>"+((k++)*num)+"</td>";
+	};
+    table_text += "</tr>";
+    }
+
+    table_text += "</table>";
+    
+    return table_text;
+};
+
+function print_table(){
+    var t = document.getElementById("target2");
+    t.innerHTML = generate_table(document.getElementById('num_inp').value);
+}
+</script>
+
+<h3>Print table of multiples</h3>
+<form>
+    <input id="num_inp" type="number" size="4">
+    <input type="button" value="Print table" onClick="print_table();">
+</form>
+
+<div id="target2"></div>
+
+</body>
+</html>
