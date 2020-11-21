@@ -19,22 +19,25 @@ d3.csv('ue_industry.csv', data => {
         .range([20, 1180]);
     
     const yScale = d3.scaleLinear()
-        .domain([0, totalYmax])
-        .range([580, 20]);
+    //.domain([0, totalYmax])
+    // This is the necessary change. We want to reflect around
+    // the middle of the div element.
+	  .domain([-(totalYmax / 2), (totalYmax / 2)])
+          .range([580, 20]);
 
     const fillScale = d3.scaleOrdinal()
         .domain(industries)
         .range(colors);
 
     const stackLayout = d3.stack()
-        .keys(industries)
-        .offset(d3.stackOffsetSilhouette);
+	  .keys(industries)
+	  .offset(d3.stackOffsetSilhouette);
         
     const stackArea = d3.area()
-        .x((d, i) => xScale(i))
-        .y0(d => yScale(d[0]))
-        .y1(d => yScale(d[1]))
-        .curve(d3.curveBasis);
+	  .x((d, i) => xScale(i))
+          .y0(d => yScale(d[0]))
+	  .y1(d => yScale(d[1]))
+	  .curve(d3.curveBasis);
 
     d3.select('#part7')
         .selectAll('path')
